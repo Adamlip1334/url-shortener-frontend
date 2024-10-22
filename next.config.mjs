@@ -10,6 +10,20 @@ if (process.env.NODE_ENV === 'development') {
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-};
+  async rewrites() {
+    return [
+      {
+        source: '/:slug',
+        destination: '/api/redirect/:slug',
+        has: [
+          {
+            type: 'host',
+            value: 'adamlipson.xyz',
+          },
+        ],
+      },
+    ];
+  },
+}
 
 export default nextConfig;

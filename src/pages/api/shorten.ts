@@ -23,12 +23,13 @@ export default async function handler(req: NextRequest) {
 
     // Store the slug and the URL in Cloudflare KV
     await myKv.put(slug, longUrl);
+    console.log(`Stored: ${slug} -> ${longUrl}`); // Add this log
 
     // Build the short URL
     const baseUrl = process.env.BASE_URL || `https://${req.headers.get('host')}`;
     const shortUrl = `${baseUrl}/${slug}`;
 
-    return NextResponse.json({ shortUrl }, { status: 200 });
+    return NextResponse.json({ shortUrl, slug, longUrl }, { status: 200 });
   } catch (error) {
     console.error('Error shortening URL:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
