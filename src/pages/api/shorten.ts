@@ -2,8 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRequestContext } from '@cloudflare/next-on-pages';
 import '@/types/cloudflare';
 
-// This makes the handler use the edge runtime, where Cloudflare KV can be accessed
 export const runtime = 'edge';
+
+function isValidUrl(url: string): boolean {
+  const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+  return urlPattern.test(url);
+}
 
 export default async function handler(req: NextRequest) {
   if (req.method !== 'POST') {
@@ -11,7 +15,17 @@ export default async function handler(req: NextRequest) {
   }
 
   try {
-    const { longUrl } = await req.json() as { longUrl: string };
+    const { longUrl } = await req.json() as { longUrl: unknown };
+
+    // Validate longUrl
+    if (typeof longUrl !== 'string' || longUrl.trim() === '') {
+      return NextResponse.json({ error: 'Invalid or missing longUrl' }, { status: 400 });
+    }
+
+    if (!isValidUrl(longUrl)) {
+      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
+    }
+
     const slug = Math.random().toString(36).substring(2, 8);
 
     // get the environment from Cloudflare and access the KV binding
@@ -23,7 +37,7 @@ export default async function handler(req: NextRequest) {
 
     // Store the slug and the URL in Cloudflare KV
     await myKv.put(slug, longUrl);
-    console.log(`Stored: ${slug} -> ${longUrl}`); // Add this log
+    console.log(`Stored: ${slug} -> ${longUrl}`);
 
     // Build the short URL
     const baseUrl = process.env.BASE_URL || `https://${req.headers.get('host')}`;

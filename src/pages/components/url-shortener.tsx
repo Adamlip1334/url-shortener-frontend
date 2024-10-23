@@ -17,7 +17,6 @@ export default function UrlShortener() {
     setIsLoading(true)
 
     try {
-      // Replace this with your actual API endpoint
       const response = await fetch('/api/shorten', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
