@@ -4,9 +4,12 @@ import '@/types/cloudflare';
 
 export const runtime = 'edge';
 
-function isValidUrl(url: string): boolean {
-  const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
-  return urlPattern.test(url);
+function encodeUrl(url: string): string {
+  try {
+    return new URL(url).toString();
+  } catch(err) {
+    return '';
+  }
 }
 
 export default async function handler(req: NextRequest) {
@@ -22,7 +25,8 @@ export default async function handler(req: NextRequest) {
       return NextResponse.json({ error: 'Invalid or missing longUrl' }, { status: 400 });
     }
 
-    if (!isValidUrl(longUrl)) {
+    const encodedUrl = encodeUrl(longUrl);
+    if (!encodedUrl) {
       return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 });
     }
 
@@ -36,14 +40,14 @@ export default async function handler(req: NextRequest) {
     }
 
     // Store the slug and the URL in Cloudflare KV
-    await myKv.put(slug, longUrl);
-    console.log(`Stored: ${slug} -> ${longUrl}`);
+    await myKv.put(slug, encodedUrl);
+    console.log(`Stored: ${slug} -> ${encodedUrl}`);
 
     // Build the short URL
     const baseUrl = process.env.BASE_URL || `https://${req.headers.get('host')}`;
     const shortUrl = `${baseUrl}/${slug}`;
 
-    return NextResponse.json({ shortUrl, slug, longUrl }, { status: 200 });
+    return NextResponse.json({ shortUrl, slug, longUrl, encodedUrl }, { status: 200 });
   } catch (error) {
     console.error('Error shortening URL:', error);
     return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
